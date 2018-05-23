@@ -161,7 +161,7 @@ public abstract class StatementCreatorUtils {
 	 */
 	public static void setParameterValue(PreparedStatement ps, int paramIndex, int sqlType, Object inValue)
 			throws SQLException {
-
+		// 将参数和值进行设置
 		setParameterValueInternal(ps, paramIndex, sqlType, null, null, inValue);
 	}
 
@@ -199,9 +199,11 @@ public abstract class StatementCreatorUtils {
 	 */
 	private static void setParameterValueInternal(PreparedStatement ps, int paramIndex, int sqlType,
 			String typeName, Integer scale, Object inValue) throws SQLException {
-
+		// 类型名
 		String typeNameToUse = typeName;
+		// 类型
 		int sqlTypeToUse = sqlType;
+		// 值
 		Object inValueToUse = inValue;
 
 		// override type info?
@@ -311,6 +313,16 @@ public abstract class StatementCreatorUtils {
 		}
 	}
 
+	/**
+	 * 设置sql语句的值 根据类型匹配设置响应的值
+	 * @param ps
+	 * @param paramIndex 位置
+	 * @param sqlType 类型
+	 * @param typeName 类型名
+	 * @param scale
+	 * @param inValue 值
+	 * @throws SQLException
+	 */
 	private static void setValue(PreparedStatement ps, int paramIndex, int sqlType, String typeName,
 			Integer scale, Object inValue) throws SQLException {
 

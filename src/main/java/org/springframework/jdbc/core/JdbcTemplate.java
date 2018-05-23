@@ -590,14 +590,15 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			if (this.nativeJdbcExtractor != null) {
 				psToUse = this.nativeJdbcExtractor.getNativePreparedStatement(ps);
 			}
-			// 调用回调函数
+			// 调用回调函数  这里主要是处理一些个性化的需求
 			T result = action.doInPreparedStatement(psToUse);
+			// 警告处理
 			handleWarnings(ps);
 			return result;
 		}
 		catch (SQLException ex) {
-			// Release Connection early, to avoid potential connection pool deadlock
-			// in the case when the exception translator hasn't been initialized yet.
+			// 出现异常需要释放资源  并不是单纯的 conn.close
+			// 考虑到还有可能出现事务的情况，所以事务也需要回滚
 			if (psc instanceof ParameterDisposer) {
 				((ParameterDisposer) psc).cleanupParameters();
 			}
@@ -605,11 +606,13 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			psc = null;
 			JdbcUtils.closeStatement(ps);
 			ps = null;
+			// 资源释放
 			DataSourceUtils.releaseConnection(con, getDataSource());
 			con = null;
 			throw getExceptionTranslator().translate("PreparedStatementCallback", sql, ex);
 		}
 		finally {
+			// 最终释放资源
 			if (psc instanceof ParameterDisposer) {
 				((ParameterDisposer) psc).cleanupParameters();
 			}
@@ -824,8 +827,10 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			public Integer doInPreparedStatement(PreparedStatement ps) throws SQLException {
 				try {
 					if (pss != null) {
+						// 设置PreparedStatement所需的全部参数
 						pss.setValues(ps);
 					}
+					// 执行更新操作
 					int rows = ps.executeUpdate();
 					if (logger.isDebugEnabled()) {
 						logger.debug("SQL update affected " + rows + " rows");
@@ -1277,6 +1282,9 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	/**
 	 * Prepare the given JDBC Statement (or PreparedStatement or CallableStatement),
 	 * applying statement settings such as fetch size, max rows, and query timeout.
+	 * 主要是用于设置fetch size, max rows, and query timeout
+	 * fetch size 主要是为了减少网络交互次数设计的 在访问ResultSet时，如果每次只从数据库取一行数据，会造成大量的开销
+	 * max rows 限制Statement对象所生成所有ResultSet对象可以包含的最大行数限制设置为一个指定的数
 	 * @param stmt the JDBC Statement to prepare
 	 * @throws SQLException if thrown by JDBC API
 	 * @see #setFetchSize

@@ -320,14 +320,19 @@ public abstract class DataSourceUtils {
 			return;
 		}
 		if (dataSource != null) {
+			// 当前线程存在事务的情况说明存在共同数据库连接，直接使用ConnectionHolder中的released方法将连接数减一而不是直接关闭
 			ConnectionHolder conHolder = (ConnectionHolder) TransactionSynchronizationManager.getResource(dataSource);
+			// 先从数据源中，获得connectionholder比较是否是该con,是的话released
+			// 也就是说还有操作在使用这个连接，不能关闭
 			if (conHolder != null && connectionEquals(conHolder, con)) {
 				// It's the transactional Connection: Don't close it.
+				// 并没有关闭，仍在pool中.
 				conHolder.released();
 				return;
 			}
 		}
 		logger.debug("Returning JDBC Connection to DataSource");
+		// 没有的话直接关闭了
 		doCloseConnection(con, dataSource);
 	}
 
