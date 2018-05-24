@@ -375,7 +375,14 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	//-------------------------------------------------------------------------
 	// Methods dealing with static SQL (java.sql.Statement)
 	//-------------------------------------------------------------------------
-
+	/**
+	 * 主要是没有参数的sql语句
+	 * 
+	 * Statement 与PreparedStatement的区别
+	 * 1、PreparedStatement是已经编译的sql语句，包含了sql的参数以及占位符
+	 * 2、由于PreparedStatement已经预编译过，所以其执行速度要快于Statement对象，
+	 * 因此多次执行的sql语句经常创建PreparedStatement对象，提高速度
+	 */
 	public <T> T execute(StatementCallback<T> action) throws DataAccessException {
 		Assert.notNull(action, "Callback object must not be null");
 
@@ -427,7 +434,9 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		}
 		execute(new ExecuteStatementCallback());
 	}
-
+	/**
+	 * 查询语句主要是在这里实现对于没有？的查询语句
+	 */
 	public <T> T query(final String sql, final ResultSetExtractor<T> rse) throws DataAccessException {
 		Assert.notNull(sql, "SQL must not be null");
 		Assert.notNull(rse, "ResultSetExtractor must not be null");
@@ -649,13 +658,16 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 				ResultSet rs = null;
 				try {
 					if (pss != null) {
+						// 设置用户设置的值
 						pss.setValues(ps);
 					}
+					// 执行查询操作
 					rs = ps.executeQuery();
 					ResultSet rsToUse = rs;
 					if (nativeJdbcExtractor != null) {
 						rsToUse = nativeJdbcExtractor.getNativeResultSet(rs);
 					}
+					// 这里负责将结果封装并转换成pojo
 					return rse.extractData(rsToUse);
 				}
 				finally {
